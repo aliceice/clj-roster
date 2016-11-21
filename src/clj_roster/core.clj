@@ -8,29 +8,15 @@
   (put-endpoint [this ^ServiceRequest request endpoint])
   (delete-endpoint [this request]))
 
-(defn service-registry [get-endpoint-fn
-                        put-endpoint-fn
-                        delete-endpoint-fn]
-  (reify ServiceRegistry
-    (get-endpoint [_ request]
-      (let [endpoint (get-endpoint-fn request)]
-        (if endpoint endpoint :unknown)))
-
-    (put-endpoint [_ request endpoint]
-      (put-endpoint-fn request endpoint))
-
-    (delete-endpoint [_ request]
-      (delete-endpoint-fn request))))
-
 (defn in-memory-registry []
   (let [endpoints-by-request (atom {})]
-    (service-registry
-      #(get @endpoints-by-request %)
-
-      (fn [request endpoint]
+    (reify ServiceRegistry
+      (get-endpoint [_ request]
+        (let [endpoint (get @endpoints-by-request request)]
+          (if endpoint endpoint :unknown)))
+      (put-endpoint [_ request endpoint]
         (swap! endpoints-by-request
                #(assoc % request endpoint)))
-
-      (fn [request]
+      (delete-endpoint [_ request]
         (swap! endpoints-by-request
                #(dissoc % request))))))
